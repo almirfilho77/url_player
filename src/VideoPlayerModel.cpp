@@ -8,6 +8,11 @@ VideoPlayerModel::VideoPlayerModel()
     m_playerInfo.duration = 0;
 }
 
+VideoPlayerModel::~VideoPlayerModel()
+{
+    
+}
+
 const std::string &VideoPlayerModel::GetVideoURL() const
 {
     return m_playerInfo.video_url;

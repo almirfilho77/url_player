@@ -30,5 +30,4 @@ Application::~Application()
     delete m_videoPlayerController;
     delete m_videoPlayerView;
     delete m_videoPlayerModel;
-    gtk_main_quit();
 }

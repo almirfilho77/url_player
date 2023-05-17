@@ -12,6 +12,7 @@
 #endif
 
 #include "Common.h"
+#include "ISubscriber.h"
 
 typedef struct _UIComponents
 {
@@ -30,7 +31,7 @@ class VideoPlayerView : public ISubscriber
 {
 public:
     VideoPlayerView();
-    virtual ~VideoPlayerView();
+    ~VideoPlayerView();
 
     void CreateUI();
     void RefreshUI();

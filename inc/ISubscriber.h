@@ -4,7 +4,7 @@
 class ISubscriber
 {
 public:
-    virtual ~ISubscriber();
+    inline virtual ~ISubscriber(){ }
 
     virtual void Update(void *data) = 0; // Must have a way to know what to update based on the thing that changed in the model
 };

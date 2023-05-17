@@ -6,7 +6,7 @@
 class ISubject
 {
 public:
-    virtual ~ISubject();
+    inline virtual ~ISubject(){ }
 
     virtual void Subscribe(ISubscriber *subscriber) = 0;
     virtual void Unsubscribe(ISubscriber *subscriber) = 0;

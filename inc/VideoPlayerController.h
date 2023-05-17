@@ -25,7 +25,7 @@ public:
     static void OnDelete(GtkWidget *widget, GdkEvent *event, void *data);
     static void OnPlay(GtkButton *button, void *data);
     static void OnPause(GtkButton *button, void *data);
-    static bool OnRefresh(VideoPlayerController *controller);
+    static void OnRefresh(VideoPlayerController *controller);
     static void OnStop(GtkButton *button, void *data);
 
 private:

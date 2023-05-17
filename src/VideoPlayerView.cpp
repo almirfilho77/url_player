@@ -3,71 +3,26 @@
 
 #include "VideoPlayerView.h"
 
+static void print_player_info(PlayerInfo &player_info);
+static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, void *data);
+static void realize_cb(GtkWidget *widget, void *data);
+
 #define GET_STATE_NAME(x) ( (x == GST_STATE_VOID_PENDING) ? "VOID PENDING" : \
                             (x == GST_STATE_NULL) ? "NULL" : \
                             (x == GST_STATE_READY) ? "READY" : \
                             (x == GST_STATE_PAUSED) ? "PAUSED" : \
                             (x == GST_STATE_PLAYING) ? "PLAYING" : "UNKNOWN")
 
-/* This function is called when the GUI toolkit creates the physical window that will hold the video.
- * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
- * and pass it to GStreamer through the VideoOverlay interface. */
-static void realize_cb(GtkWidget *widget, void *data)
-{
-    std::cout << "[!] Realized\n";
-    GstElement *pipeline = static_cast<GstElement *>(data);
-
-    // This does not work in gtk-4
-    GdkWindow *window = gtk_widget_get_window(widget);
-    guintptr window_handle;
-
-    if (!gdk_window_ensure_native(window))
-    {
-        g_error("Could not create native window needed for GstVideoOverlay!");
-        std::cerr << "Could not create native window needed for GstVideoOverlay!";
-    }
-    std::cout << "Tested if gdk window is native\n";
-
-    /* Retrieve window handler from GDK */
-#if defined (GDK_WINDOWING_WIN32)
-    window_handle = (guintptr)GDK_WINDOW_HWND(window);
-#elif defined (GDK_WINDOWING_QUARTZ)
-    window_handle = gdk_quartz_window_get_nsview(window);
-#elif defined (GDK_WINDOWING_X11)
-    window_handle = GDK_WINDOW_XID(window);
-    std::cout << "window_handle " << window_handle << " comes from GDK_WINDOW_XID\n";
-#endif
-
-    /* Pass it to playbin, which implements VideoOverlay and will forward it to the video sink */
-    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(pipeline), window_handle);
-}
-
-/* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
- * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
- * we simply draw a black rectangle to avoid garbage showing up. */
-static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, void *data)
-{
-    GstState state = *(static_cast<GstState *>(data));
-    if (state < GST_STATE_PAUSED)
-    {
-        GtkAllocation allocation;
-
-        /* Cairo is a 2D graphics library which we use here to clean the video window.
-        * It is used by GStreamer for other reasons, so it will always be available to us. */
-        gtk_widget_get_allocation(widget, &allocation);
-        cairo_set_source_rgb(cr, 0, 0, 0);
-        cairo_rectangle(cr, 0, 0, allocation.width, allocation.height);
-        cairo_fill(cr);
-    }
-
-    return FALSE;
-}
-
 VideoPlayerView::VideoPlayerView()
     :   m_playerInfo(nullptr),
         m_playbin(nullptr)
 {
     memset(&m_UIComponents, 0, sizeof(m_UIComponents));
+}
+
+VideoPlayerView::~VideoPlayerView()
+{
+
 }
 
 void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
@@ -170,7 +125,7 @@ void VideoPlayerView::SetStopCallback(btn_callback_fn stop_cb, void *data)
 void VideoPlayerView::Update(void *data)
 {
     m_playerInfo = static_cast<PlayerInfo *>(data);
-    PrintPlayerInfo(*m_playerInfo);
+    print_player_info(*m_playerInfo);
 }
 
 void VideoPlayerView::SetPipelineObject(GstElement *pipeline)
@@ -181,11 +136,65 @@ void VideoPlayerView::SetPipelineObject(GstElement *pipeline)
     }
 }
 
-static void PrintPlayerInfo(PlayerInfo &player_info)
+static void print_player_info(PlayerInfo &player_info)
 {
     std::cout   << "Player Info : \n" 
                 << "Video URL: " << player_info.video_url 
                 << "\nPlayback State: " 
                 << GET_STATE_NAME(player_info.state);
     g_print("\nCurrent time: %" GST_TIME_FORMAT "\nDuration: %" GST_TIME_FORMAT, GST_TIME_ARGS(player_info.current_time), GST_TIME_ARGS(player_info.duration));
+}
+
+/* This function is called when the GUI toolkit creates the physical window that will hold the video.
+ * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
+ * and pass it to GStreamer through the VideoOverlay interface. */
+static void realize_cb(GtkWidget *widget, void *data)
+{
+    std::cout << "[!] Realized\n";
+    GstElement *pipeline = static_cast<GstElement *>(data);
+
+    // This does not work in gtk-4
+    GdkWindow *window = gtk_widget_get_window(widget);
+    guintptr window_handle;
+
+    if (!gdk_window_ensure_native(window))
+    {
+        g_error("Could not create native window needed for GstVideoOverlay!");
+        std::cerr << "Could not create native window needed for GstVideoOverlay!";
+    }
+    std::cout << "Tested if gdk window is native\n";
+
+    /* Retrieve window handler from GDK */
+#if defined (GDK_WINDOWING_WIN32)
+    window_handle = (guintptr)GDK_WINDOW_HWND(window);
+#elif defined (GDK_WINDOWING_QUARTZ)
+    window_handle = gdk_quartz_window_get_nsview(window);
+#elif defined (GDK_WINDOWING_X11)
+    window_handle = GDK_WINDOW_XID(window);
+    std::cout << "window_handle " << window_handle << " comes from GDK_WINDOW_XID\n";
+#endif
+
+    /* Pass it to playbin, which implements VideoOverlay and will forward it to the video sink */
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(pipeline), window_handle);
+}
+
+/* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
+ * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
+ * we simply draw a black rectangle to avoid garbage showing up. */
+static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, void *data)
+{
+    GstState state = *(static_cast<GstState *>(data));
+    if (state < GST_STATE_PAUSED)
+    {
+        GtkAllocation allocation;
+
+        /* Cairo is a 2D graphics library which we use here to clean the video window.
+        * It is used by GStreamer for other reasons, so it will always be available to us. */
+        gtk_widget_get_allocation(widget, &allocation);
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_rectangle(cr, 0, 0, allocation.width, allocation.height);
+        cairo_fill(cr);
+    }
+
+    return FALSE;
 }

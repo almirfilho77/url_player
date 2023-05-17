@@ -80,6 +80,7 @@ void VideoPlayerController::Terminate()
     Stop();
     g_source_remove(m_refresh_cb_handle);
     gst_object_unref(m_playbin);
+    gtk_main_quit();
 }
 
 bool VideoPlayerController::m_InitPipeline()
@@ -94,6 +95,7 @@ bool VideoPlayerController::m_InitPipeline()
     /* Set URL to play */
     g_object_set(m_playbin, "uri", m_videoPlayerModel->GetVideoURL(), NULL);
     m_videoPlayerView->SetPipelineObject(m_playbin);
+    return true;
 }
 
 void VideoPlayerController::m_InitBus()
@@ -202,7 +204,7 @@ void VideoPlayerController::OnStop(GtkButton *button, void *data)
     videoPlayerController->Stop();
 }
 
-bool VideoPlayerController::OnRefresh(VideoPlayerController *controller)
+void VideoPlayerController::OnRefresh(VideoPlayerController *controller)
 {
     auto model = controller->GetModel();
     auto view = controller->GetView();
