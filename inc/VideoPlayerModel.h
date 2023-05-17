@@ -19,6 +19,7 @@ public:
 
     const std::string &GetVideoURL() const;
     void SetVideoURL(std::string &video_url);
+    void SetVideoURL(const char *video_url);
 
     const GstState GetState() const;
     void SetState(GstState state);

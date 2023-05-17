@@ -22,16 +22,18 @@ typedef struct _UIComponents
     GtkWidget *controls;     /* HBox to hold the buttons and the slider */
     GtkWidget *play_button, *pause_button, *stop_button; /* Buttons */
     GtkWidget *slider;
+    gulong slider_update_signal_id; /* Signal ID for the slider update signal */
+    GtkWidget *streams_list;
 } UIComponents;
 
 class VideoPlayerView : public ISubscriber
 {
 public:
-    VideoPlayerView(ApplicationData *data);
-    ~VideoPlayerView();
+    VideoPlayerView();
+    virtual ~VideoPlayerView();
 
-    void SetApplicationData(ApplicationData *data);
     void CreateUI();
+    void RefreshUI();
 
     void Update(void *data) override;
 
@@ -40,8 +42,10 @@ public:
     void SetPauseCallback(btn_callback_fn pause_cb, void *data);
     void SetStopCallback(btn_callback_fn stop_cb, void *data);
 
+    void SetPipelineObject(GstElement *pipeline);
+
 private:
-    ApplicationData *m_applicationData;
+    GstElement *m_playbin;
     PlayerInfo *m_playerInfo;
     UIComponents m_UIComponents;
 };

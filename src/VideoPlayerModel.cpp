@@ -23,6 +23,16 @@ void VideoPlayerModel::SetVideoURL(std::string &video_url)
     Notify();
 }
 
+void VideoPlayerModel::SetVideoURL(const char *video_url)
+{
+    if (strcmp(video_url, "") == 0)
+    {
+        return;
+    }
+    m_playerInfo.video_url = video_url;
+    Notify();
+}
+
 const GstState VideoPlayerModel::GetState() const
 {
     return m_playerInfo.state;
@@ -31,6 +41,7 @@ const GstState VideoPlayerModel::GetState() const
 void VideoPlayerModel::SetState(GstState state)
 {
     m_playerInfo.state = state;
+    Notify();
 }
 
 const gint64 VideoPlayerModel::GetCurrentTime() const

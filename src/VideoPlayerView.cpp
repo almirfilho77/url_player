@@ -12,10 +12,11 @@
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
  * and pass it to GStreamer through the VideoOverlay interface. */
-static void realize_cb(GtkWidget *widget, ApplicationData *data)
+static void realize_cb(GtkWidget *widget, void *data)
 {
     std::cout << "[!] Realized\n";
-    // ApplicationData *app_data = static_cast<ApplicationData *>(data);
+    GstElement *pipeline = static_cast<GstElement *>(data);
+
     // This does not work in gtk-4
     GdkWindow *window = gtk_widget_get_window(widget);
     guintptr window_handle;
@@ -38,15 +39,16 @@ static void realize_cb(GtkWidget *widget, ApplicationData *data)
 #endif
 
     /* Pass it to playbin, which implements VideoOverlay and will forward it to the video sink */
-    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(data->playbin), window_handle);
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(pipeline), window_handle);
 }
 
 /* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
  * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
  * we simply draw a black rectangle to avoid garbage showing up. */
-static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, ApplicationData *data)
+static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, void *data)
 {
-    if (data->state < GST_STATE_PAUSED)
+    GstState state = *(static_cast<GstState *>(data));
+    if (state < GST_STATE_PAUSED)
     {
         GtkAllocation allocation;
 
@@ -61,13 +63,11 @@ static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, ApplicationData *data)
     return FALSE;
 }
 
-VideoPlayerView::VideoPlayerView(ApplicationData *data)
-    :   m_playerInfo(nullptr)
+VideoPlayerView::VideoPlayerView()
+    :   m_playerInfo(nullptr),
+        m_playbin(nullptr)
 {
-    if (data != nullptr)
-    {
-        m_applicationData = data;
-    }
+    memset(&m_UIComponents, 0, sizeof(m_UIComponents));
 }
 
 void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
@@ -75,8 +75,8 @@ void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
     m_UIComponents.main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
     m_UIComponents.video_window = gtk_drawing_area_new();
-    g_signal_connect(m_UIComponents.video_window, "realize", G_CALLBACK(realize_cb), this->m_applicationData);
-    g_signal_connect(m_UIComponents.video_window, "draw", G_CALLBACK(draw_cb), this->m_applicationData);    // TODO: CHECK THIS DATA POINTER, IT USES ONLY THE STATE OF PLAYBACK 
+    g_signal_connect(m_UIComponents.video_window, "realize", G_CALLBACK(realize_cb), this->m_playbin);
+    g_signal_connect(m_UIComponents.video_window, "draw", G_CALLBACK(draw_cb), &(this->m_playerInfo->state));    // TODO: CHECK THIS DATA POINTER, IT USES ONLY THE STATE OF PLAYBACK 
                                                                                                             // IS THE STATE INIT YET? WILL KEEP IT INSIDE APP DATA OR PLAYERINFO?
 
     m_UIComponents.play_button = gtk_button_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_SMALL_TOOLBAR);
@@ -89,8 +89,8 @@ void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
     gtk_scale_set_draw_value(GTK_SCALE(m_UIComponents.slider), 0);
     // TODO: CONNECT SLIDER CALLBACK
 
-    m_applicationData->streams_list = gtk_text_view_new();
-    gtk_text_view_set_editable(GTK_TEXT_VIEW(m_applicationData->streams_list), FALSE);
+    m_UIComponents.streams_list = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(m_UIComponents.streams_list), FALSE);
 
     m_UIComponents.controls = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(m_UIComponents.controls), m_UIComponents.play_button, FALSE, FALSE, 2);
@@ -100,7 +100,7 @@ void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
 
     m_UIComponents.main_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(m_UIComponents.main_hbox), m_UIComponents.video_window, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(m_UIComponents.main_hbox), m_applicationData->streams_list, FALSE, FALSE, 2);
+    gtk_box_pack_start(GTK_BOX(m_UIComponents.main_hbox), m_UIComponents.streams_list, FALSE, FALSE, 2);
 
     m_UIComponents.main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(m_UIComponents.main_box), m_UIComponents.main_hbox, TRUE, TRUE, 0);
@@ -109,6 +109,26 @@ void VideoPlayerView::CreateUI() // TODO: CONNECT ALL THE CALLBACKS
     gtk_window_set_default_size(GTK_WINDOW(m_UIComponents.main_window), 640, 480);
 
     gtk_widget_show_all(m_UIComponents.main_window);
+}
+
+void VideoPlayerView::RefreshUI()
+{
+    /* We do not want to update anything unless we are in the PAUSED or PLAYING states */
+    if (m_playerInfo->state < GST_STATE_PAUSED)
+    {
+        return;
+    }
+
+    // Considering that the refresh of data was trigged by a time cb in controller and the updated model triggered updates in the view before the refreshUI function was called
+    gtk_range_set_range(GTK_RANGE(m_UIComponents.slider), 0, (gdouble)m_playerInfo->duration / GST_SECOND);
+
+    /* Block the "value-changed" signal, so the slider_cb function is not called
+    * (which would trigger a seek the user has not requested) */
+    g_signal_handler_block(m_UIComponents.slider, m_UIComponents.slider_update_signal_id);
+    /* Set the position of the slider to the current pipeline position, in SECONDS */
+    gtk_range_set_value(GTK_RANGE(m_UIComponents.slider), (gdouble)m_playerInfo->current_time / GST_SECOND);
+    /* Re-enable the signal */
+    g_signal_handler_unblock(m_UIComponents.slider, m_UIComponents.slider_update_signal_id);
 }
 
 void VideoPlayerView::SetDeleteCallback(delete_callback_fn delete_cb, void *data)
@@ -150,9 +170,15 @@ void VideoPlayerView::SetStopCallback(btn_callback_fn stop_cb, void *data)
 void VideoPlayerView::Update(void *data)
 {
     m_playerInfo = static_cast<PlayerInfo *>(data);
-    m_applicationData->state = m_playerInfo->state;
-    m_applicationData->duration = m_playerInfo->duration; // WILL KEEP BOTH??
     PrintPlayerInfo(*m_playerInfo);
+}
+
+void VideoPlayerView::SetPipelineObject(GstElement *pipeline)
+{
+    if (pipeline != nullptr)
+    {
+        m_playbin = pipeline;
+    }
 }
 
 static void PrintPlayerInfo(PlayerInfo &player_info)
