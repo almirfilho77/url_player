@@ -7,6 +7,8 @@
 #include <gtk/gtk.h>
 #include <gst/gst.h>
 
+#include "Logger.h"
+
 /* Structure to contain all our information, so we can pass it around */
 typedef struct _ApplicationData
 {

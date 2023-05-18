@@ -13,7 +13,6 @@ public:
     ~Application();
 
 private:
-    ApplicationData *m_appData;
     VideoPlayerView *m_videoPlayerView;
     VideoPlayerModel *m_videoPlayerModel;
     VideoPlayerController *m_videoPlayerController;

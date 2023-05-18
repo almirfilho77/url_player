@@ -30,12 +30,14 @@ set(BIN_DIR        "${PROJECT_SOURCE_DIR}/bin")
 set(INCLUDE_DIR    "${PROJECT_SOURCE_DIR}/inc")
 set(RESOURCE_DIR   "${PROJECT_SOURCE_DIR}/res")
 set(SOURCES_DIR    "${PROJECT_SOURCE_DIR}/src")
+set(VENDOR_DIR     "${PROJECT_SOURCE_DIR}/vendor")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BIN_DIR})
 
 include_directories(${INCLUDE_DIR})
 include_directories(${GST_INCLUDE_DIRS})
 include_directories(${GTK3_INCLUDE_DIRS})
+include_directories("${VENDOR_DIR}/spdlog/include")
 
 link_directories(${GTK3_LIBRARY_DIRS})
 
