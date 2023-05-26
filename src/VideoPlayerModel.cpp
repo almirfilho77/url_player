@@ -4,13 +4,14 @@ VideoPlayerModel::VideoPlayerModel()
 {
     m_playerInfo.video_url = "";
     m_playerInfo.state = GST_STATE_NULL;
-    m_playerInfo.current_time = 0;
-    m_playerInfo.duration = 0;
+    m_playerInfo.current_time = -1;
+    m_playerInfo.duration = -1;
+    _DEBUG("Constructed Video Player Model");
 }
 
 VideoPlayerModel::~VideoPlayerModel()
 {
-    
+    _DEBUG("Destructed Video Player Model");
 }
 
 const std::string &VideoPlayerModel::GetVideoURL() const

@@ -22,6 +22,8 @@ Application::Application(const char *video_url)
 
     // Set play, pause, stop, etc callbacks to be able to modify the model
     m_videoPlayerController->ConnectUISignals();
+
+    m_videoPlayerController->Play();
 }
 
 Application::~Application()
@@ -30,4 +32,5 @@ Application::~Application()
     delete m_videoPlayerController;
     delete m_videoPlayerView;
     delete m_videoPlayerModel;
+    _DEBUG("---------------");
 }

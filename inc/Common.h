@@ -41,4 +41,10 @@ typedef struct _PlaybackInfo
 typedef void (*btn_callback_fn)(GtkButton *, void *);
 typedef void (*delete_callback_fn)(GtkWidget *, GdkEvent *, void *);
 
+#define GET_STATE_NAME(x) ( (x == GST_STATE_VOID_PENDING) ? "VOID PENDING" : \
+                            (x == GST_STATE_NULL) ? "NULL" : \
+                            (x == GST_STATE_READY) ? "READY" : \
+                            (x == GST_STATE_PAUSED) ? "PAUSED" : \
+                            (x == GST_STATE_PLAYING) ? "PLAYING" : "UNKNOWN")
+
 #endif /* __COMMON_H__ */

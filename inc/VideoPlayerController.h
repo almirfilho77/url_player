@@ -14,7 +14,7 @@ public:
 
     VideoPlayerModel *GetModel() const;
     VideoPlayerView *GetView() const;
-    GstElement *GetPipeline() const;
+    GstElement *GetPipeline();
 
     void ConnectUISignals();
 

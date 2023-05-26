@@ -56,7 +56,7 @@ then
         mkdir build
         cd ./build
         cmake ../
-        cmake --build .
+        cmake --build . -j 14
         cd ../
         rm -rf build
     else

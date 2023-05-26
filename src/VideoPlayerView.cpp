@@ -7,17 +7,11 @@ static void print_player_info(PlayerInfo &player_info);
 static gboolean draw_cb(GtkWidget *widget, cairo_t *cr, void *data);
 static void realize_cb(GtkWidget *widget, void *data);
 
-#define GET_STATE_NAME(x) ( (x == GST_STATE_VOID_PENDING) ? "VOID PENDING" : \
-                            (x == GST_STATE_NULL) ? "NULL" : \
-                            (x == GST_STATE_READY) ? "READY" : \
-                            (x == GST_STATE_PAUSED) ? "PAUSED" : \
-                            (x == GST_STATE_PLAYING) ? "PLAYING" : "UNKNOWN")
-
 VideoPlayerView::VideoPlayerView()
     :   m_playerInfo(nullptr),
         m_playbin(nullptr)
 {
-    memset(&m_UIComponents, 0, sizeof(m_UIComponents));
+    _DEBUG("C'tor VideoPlayerView");
 }
 
 VideoPlayerView::~VideoPlayerView()
@@ -134,14 +128,12 @@ void VideoPlayerView::SetPipelineObject(GstElement *pipeline)
     {
         m_playbin = pipeline;
     }
+    _DEBUG("Value of refcount for playbin = {0}", GST_OBJECT_REFCOUNT_VALUE(m_playbin));
 }
 
 static void print_player_info(PlayerInfo &player_info)
 {
-    std::cout   << "Player Info : \n" 
-                << "Video URL: " << player_info.video_url 
-                << "\nPlayback State: " 
-                << GET_STATE_NAME(player_info.state);
+    _INFO("-- Player Info --\nVideo URL: {0}\nPlayback State: {1}\n", player_info.video_url, GET_STATE_NAME(player_info.state));
     g_print("\nCurrent time: %" GST_TIME_FORMAT "\nDuration: %" GST_TIME_FORMAT, GST_TIME_ARGS(player_info.current_time), GST_TIME_ARGS(player_info.duration));
 }
 

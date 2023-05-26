@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-    Logger::Init();
+    Logger::Init(LoggerType::CONSOLE);
     _DEBUG("Begin of main function!");
 
     /* Init GTK */
